@@ -109,7 +109,22 @@ $desplazamientoProbable("ufuf")$ retorna $1$ (en lugar del valor real $k = 5$).
 6. *Conclusión:*$$\text{romperCesar}(\text{cesar}("papa", 5)) = "tete" \neq "papa"$$
 
 
-
-
-
 Esto prueba que el algoritmo falla cuando la hipótesis estadística de prevalencia de la letra $'e'$ no se cumple en el texto plano original.
+
+## 6. Definición Formal y Análisis del Cifrado Vigenere
+
+El cifrado Vigenere extiende el cifrado por sustitución asociando a cada carácter del mensaje $m$ un carácter de la clave $K$ de manera cíclica.
+
+### Definición Recurrente Formal:
+Sea $m = c :: m'$ el mensaje y $K = k :: K'$ la clave de caracteres (donde $P(k) = \text{ASCII}(k) - 97$). La función $f_{\text{vigenere}}(m, K)$ se define formalmente como:
+
+$$f_{\text{vigenere}}(c :: m', k :: K') = \begin{cases}  f_{\text{shift}}(c, P(k)) :: f_{\text{vigenere}}(m', K' :: k) & \text{si } c \in \Sigma \\  c :: f_{\text{vigenere}}(m', k :: K') & \text{si } c \notin \Sigma  \end{cases}$$
+
+Con los casos base:
+- $f_{\text{vigenere}}($""$, K) = $""
+- $f_{\text{vigenere}}(m, $""$) = m$
+
+### Correspondencia con la Implementación en Scala:
+En la implementación recursiva de `vigenere`:
+- Si el carácter $c$ es una letra minúscula (`esMinuscula(c)` es `true`), se calcula el desplazamiento $P(\text{clave.head}) = \text{clave.head} - \text{'a'}$ y se aplica la rotación de la clave pasando el primer carácter al final: `vigenere(m.tail, clave.tail + clave.head)`.
+- Si el carácter $c$ **no** es una letra minúscula, se conserva en la salida ($c + \text{vigenere}(m.tail, \text{clave})$) **sin consumir ni rotar** la clave, cumpliendo con la regla del taller.
