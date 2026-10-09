@@ -18,10 +18,10 @@ Los puntos desarrollados fueron:
 
 -   **Punto 5:** Vigenère y Conteo de mensajes.
 
--   **Punto 0:** Ejecución del App.
+-   **Punto 0:** Cesar y CesarCola con (casa,3).
 
 
-
+    
 
 # 1.3. Punto 1: Cifrado César con recursión lineal
 
@@ -1040,6 +1040,16 @@ Scala
 'b' - 'e'
 
 ```
+vigenere("sol", "ab") -> "spl"
+
+
+# Punto 0: CESAR Y CESARCOLA con (casa,3)
+
+## 1. Cifrado César con Recursión Lineal: `cesar("casa", 3)`
+
+### Ejecución paso a paso
+
+Scala
 
 La distancia es negativa, por lo que se suma `26`.
 
@@ -1068,6 +1078,7 @@ y llama:
 cesarCola("bcd", -23)
 
 ```
+cesar("casa", 3) -> "fdvd"
 
 El resultado equivale a desplazar las letras tres posiciones hacia adelante:
 

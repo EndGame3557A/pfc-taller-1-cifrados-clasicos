@@ -49,9 +49,9 @@ class CifradosClasicos {
    * Cuando la función esté escrita, anótela con @tailrec: el compilador
    * comprueba que la llamada recursiva sea lo último que hace.
    */
-  @tailrec // recursion de cola
+    @tailrec // recursion de cola
   final def cesarCola(m: Mensaje, k: Int, acc: Mensaje = ""): Mensaje = {
-    //final def no puede sobreescribirse
+      //final def no puede sobreescribirse
     if (m.isEmpty) acc //si ya no hay letras, devuelve el acumulador (frase desplazada)
     else {
       val c = m.head //primera letra
@@ -131,7 +131,22 @@ class CifradosClasicos {
    * Vigenère: cada letra se corre según la letra de la clave que le toca. Lo
    * que no es letra minúscula se copia y no consume clave.
    */
-  def vigenere(m: Mensaje, clave: Clave): Mensaje =
-    println("probandooo")
+  def vigenere(m: Mensaje, clave: Clave): Mensaje = {
+  if (m.isEmpty) ""
+    else {
+      val c = m.head // inicio del mensaje
+      if(clave.isEmpty) m
+      else{
+        if (esMinuscula(c)) {
+        val desplazamiento = clave.head - 'a'
+        val letra = ((c - 'a' + desplazamiento) % 26 + 'a').toChar // nueva letra del cifradp
+
+        letra + vigenere(m.tail, clave.tail + clave.head) // la clave va rotando ciclicamente
+      } else {
+        c + vigenere(m.tail, clave)
+      }
+      }
+    }
+  }
 }
 
