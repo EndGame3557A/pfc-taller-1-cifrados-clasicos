@@ -326,6 +326,8 @@ else {
   val desplazamiento = letraMasFrecuente - 'e'
   if (desplazamiento < 0) desplazamiento + letras else desplazamiento
 }
+val freqMap = contar(m, Map.empty)
+freqMap.toList.sortBy { case (c, count) => (-count, c) }
 ```
 
 Sea $F = \text{frecuencias}(m)$ y $c^*$ la letra de la cabeza de $F$ (la más frecuente; en empate, la menor alfabéticamente). Sea $\delta = P(c^*) - P(\texttt{e})$, que es lo que calcula `letraMasFrecuente - 'e'`. Definimos

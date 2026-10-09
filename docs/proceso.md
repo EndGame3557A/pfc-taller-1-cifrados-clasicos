@@ -9,11 +9,11 @@ El objetivo principal es analizar cómo se ejecutan las funciones, observar el c
 Los puntos desarrollados fueron:
 
 -   **Punto 1:** Cifrado César con recursión lineal.
-    
+
 -   **Punto 2:** Cifrado César con recursión de cola.
-    
+
 -   **Punto 3:** Conteo de frecuencias con recursión de cola.
-    
+
 -   **Punto 4:** Romper un César por análisis de frecuencias.
 
 -   **Punto 5:** Vigenère y Conteo de mensajes.
@@ -83,11 +83,23 @@ cesar("abc",3)
 El desplazamiento es `1`, por lo que cada letra se mueve una posición:
 
 -   `a` -> `b`
-    
+
 -   `b` -> `c`
-    
+
 -   `c` -> `d`
-    
+
+### Cálculo de cada letra
+
+Con la fórmula `((c.toInt - primera + k) % letras + letras) % letras + primera`, donde `primera = 97` y `k = 1`:
+
+| Letra | `c.toInt` | `c.toInt - primera` | `+ k` | `% 26` (luego `+ 26`, `% 26`) | `+ primera` | Resultado |
+|:-----:|:---------:|:-------------------:|:-----:|:-----------------------------:|:-----------:|:---------:|
+| `a` | 97 | 0 | 1 | 1 | 98 | `b` |
+| `b` | 98 | 1 | 2 | 2 | 99 | `c` |
+| `c` | 99 | 2 | 3 | 3 | 100 | `d` |
+
+Como ningún resultado pasa de 25, el `% 26` no cambia el valor. Con `zzz` y `k = 1` sí se vería: `25 + 1 = 26` y `26 % 26 = 0`, que vuelve a la `a`.
+
 
 ### Paso 1
 
@@ -271,6 +283,46 @@ cesar("abc", 1)
 -> "bcd"
 
 ```
+
+### Estado de la pila paso a paso
+
+Cada llamado deja una **operación pendiente** (`nuevaLetra + ...`), así que su marco no se puede liberar hasta que regrese la llamada siguiente. La pila se muestra con el tope arriba.
+
+**Fase de ida: la pila crece**
+
+```text
+Paso 1:
+  [1] cesar("abc", 1)   nuevaLetra = 'b'   pendiente: 'b' + ?
+Profundidad: 1
+
+Paso 2:
+  [2] cesar("bc", 1)    nuevaLetra = 'c'   pendiente: 'c' + ?
+  [1] cesar("abc", 1)   nuevaLetra = 'b'   pendiente: 'b' + ?
+Profundidad: 2
+
+Paso 3:
+  [3] cesar("c", 1)     nuevaLetra = 'd'   pendiente: 'd' + ?
+  [2] cesar("bc", 1)    nuevaLetra = 'c'   pendiente: 'c' + ?
+  [1] cesar("abc", 1)   nuevaLetra = 'b'   pendiente: 'b' + ?
+Profundidad: 3
+
+Paso 4 (caso base, máxima profundidad):
+  [4] cesar("", 1)      caso base: devuelve ""
+  [3] cesar("c", 1)     nuevaLetra = 'd'   pendiente: 'd' + ?
+  [2] cesar("bc", 1)    nuevaLetra = 'c'   pendiente: 'c' + ?
+  [1] cesar("abc", 1)   nuevaLetra = 'b'   pendiente: 'b' + ?
+Profundidad: 4
+```
+
+**Fase de vuelta: la pila se vacía**
+
+```text
+Retorna [4] con ""      ->  [3] calcula 'd' + ""     = "d"     (pila: 3 marcos)
+Retorna [3] con "d"     ->  [2] calcula 'c' + "d"    = "cd"    (pila: 2 marcos)
+Retorna [2] con "cd"    ->  [1] calcula 'b' + "cd"   = "bcd"   (pila: 1 marco)
+Retorna [1] con "bcd"                                         (pila: vacía)
+```
+
 
 ### Pila de llamados
 
@@ -504,6 +556,28 @@ devuelve:
 
 ```
 
+
+### Estado de la pila paso a paso
+
+En cada paso la llamada recursiva es lo **último** que hace la función. Como no queda nada pendiente, el marco actual se **reutiliza** para el siguiente llamado, solo con las variables actualizadas. Por eso la pila siempre tiene un solo marco.
+
+```text
+Paso 1:  [1] cesarCola(m = "abc", k = 1, acc = "")      'a' -> 'b'
+Profundidad: 1
+
+Paso 2:  [1] cesarCola(m = "bc",  k = 1, acc = "b")     'b' -> 'c'    <- mismo marco
+Profundidad: 1
+
+Paso 3:  [1] cesarCola(m = "c",   k = 1, acc = "bc")    'c' -> 'd'    <- mismo marco
+Profundidad: 1
+
+Paso 4:  [1] cesarCola(m = "",    k = 1, acc = "bcd")   caso base: devuelve acc
+Profundidad: 1
+```
+
+No hay fase de vuelta: cuando se llega al caso base, el resultado ya está completo en `acc` y se devuelve directamente.
+
+
 ### Pila de llamados
 
 A diferencia de la recursión lineal, no hay una concatenación pendiente después de la llamada recursiva. Las llamadas se representan mediante llamadas de cola:
@@ -528,10 +602,35 @@ sequenceDiagram
 
 
 
-```
-cesarCola("abc", 1) -> "bcd"
+## ¿Por qué una pila crece y la otra no?
 
+La diferencia está en lo que ocurre **después** de la llamada recursiva.
+
+**En `cesar` (lineal)**, la llamada recursiva está dentro de una expresión:
+
+```scala
+nuevaLetra + cesar(m.tail, k)
 ```
+
+Cuando se hace la llamada a `cesar(m.tail, k)`, todavía falta hacer la suma `nuevaLetra + ...`. Para eso el marco actual debe **conservarse en la pila**, con su valor de `nuevaLetra`, hasta que regrese la llamada. Cada letra del mensaje apila un marco nuevo y ninguno se libera hasta llegar al caso base. Para un mensaje de $n$ letras, la profundidad máxima es $n + 1$ marcos. Para `"abc"` fueron 4. Con un mensaje muy largo esto puede producir un `StackOverflowError`.
+
+**En `cesarCola` (de cola)**, la llamada recursiva es la **última** acción de la función:
+
+```scala
+cesarCola(m.tail, k, acc + nuevaLetra)
+```
+
+No queda ninguna operación pendiente. Todo lo que el marco actual sabía ya está resumido en los argumentos de la llamada (`m.tail`, `k`, `acc + nuevaLetra`). Por eso el marco actual ya no se necesita, y con `@tailrec` el compilador lo convierte en un ciclo que **reutiliza el mismo marco**. La profundidad de la pila es siempre 1, sin importar el largo del mensaje.
+
+| | `cesar("abc", 1)` | `cesarCola("abc", 1)` |
+|:--|:--:|:--:|
+| Operación pendiente tras la llamada | `nuevaLetra + ...` | ninguna |
+| Dónde se arma el resultado | al **regresar** de las llamadas | en `acc`, al **ir** |
+| Profundidad máxima de la pila | $n + 1 = 4$ | $1$ |
+| Fase de vuelta | sí (3 concatenaciones pendientes) | no |
+| Crece con el largo del mensaje | sí, proporcional a $n$ | no, constante |
+
+El acumulador `acc` sí crece, pero vive en el montón (es el resultado mismo) y no en la pila.
 
 # 1.5. Punto 3: Conteo de frecuencias con recursión de cola
 
@@ -941,6 +1040,16 @@ Scala
 'b' - 'e'
 
 ```
+vigenere("sol", "ab") -> "spl"
+
+
+# Punto 0: CESAR Y CESARCOLA con (casa,3)
+
+## 1. Cifrado César con Recursión Lineal: `cesar("casa", 3)`
+
+### Ejecución paso a paso
+
+Scala
 
 La distancia es negativa, por lo que se suma `26`.
 
@@ -969,6 +1078,7 @@ y llama:
 cesarCola("bcd", -23)
 
 ```
+cesar("casa", 3) -> "fdvd"
 
 El resultado equivale a desplazar las letras tres posiciones hacia adelante:
 
@@ -1030,24 +1140,24 @@ En este punto se desarrollan dos conceptos: la función `combinaciones` y el alg
 Calcula cuántos mensajes de longitud `n` se pueden formar utilizando un alfabeto de `a` letras, con la restricción de que **no pueden haber dos letras iguales seguidas**.
 
 -   Para la primera posición hay `a` opciones.
-    
+
 -   Para las posiciones subsecuentes hay `(a - 1)` opciones disponibles.
-    
+
 -   La función se implementa mediante **recursión lineal**.
-    
+
 
 ### 2. Cifrado Vigenère
 
 El cifrado Vigenère es un cifrado polialfabético en el cual cada letra del mensaje se desplaza según la posición de la letra correspondiente de una `clave`.
 
 -   Si la letra del mensaje es una minúscula (`'a'` a `'z'`), se calcula el desplazamiento tomando la letra actual de la clave (`clave.head - 'a'`).
-    
+
 -   Al procesar una letra válida, la clave se rota cíclicamente para la siguiente llamada recursiva: `clave.tail + clave.head`.
-    
+
 -   Si el carácter no es una letra minúscula, se conserva sin modificar y **no consume ni rota** la clave.
-    
+
 -   Se implementa mediante **recursión lineal**, dejando pendiente la concatenación de la letra procesada con el resultado de la llamada recursiva.
-    
+
 
 ## Código
 
@@ -1115,11 +1225,11 @@ Se ejecuta `combinaciones(1, 3)`. Como `n == 1`, se activa el caso base que devu
 ### Desapilado y Retorno
 
 -   `combinaciones(1, 3)` devuelve `3`.
-    
+
 -   `combinaciones(2, 3)` realiza `2 * 3` y devuelve `6`.
-    
+
 -   `combinaciones(3, 3)` realiza `2 * 6` y devuelve `12`.
-    
+
 
 ### Pila de llamados (`combinaciones`)
 
@@ -1170,15 +1280,15 @@ vigenere("sol", "ab")
 ```
 
 -   `m.head = 's'`, `m.tail = "ol"`
-    
+
 -   `clave.head = 'a'`, `clave.tail = "b"`
-    
+
 -   Desplazamiento de `'a'`: `0`
-    
+
 -   `'s'` + 0 = `'s'`
-    
+
 -   Nueva clave rotada: `"b" + "a" = "ba"`
-    
+
 
 Queda pendiente concatenar `'s'` con el resultado de la llamada recursiva:
 
@@ -1200,15 +1310,15 @@ vigenere("ol", "ba")
 ```
 
 -   `m.head = 'o'`, `m.tail = "l"`
-    
+
 -   `clave.head = 'b'`, `clave.tail = "a"`
-    
+
 -   Desplazamiento de `'b'`: `1`
-    
+
 -   `'o'` + 1 = `'p'`
-    
+
 -   Nueva clave rotada: `"a" + "b" = "ab"`
-    
+
 
 Queda pendiente concatenar `'p'` con la llamada:
 
@@ -1231,15 +1341,15 @@ vigenere("l", "ab")
 ```
 
 -   `m.head = 'l'`, `m.tail = ""`
-    
+
 -   `clave.head = 'a'`, `clave.tail = "b"`
-    
+
 -   Desplazamiento de `'a'`: `0`
-    
+
 -   `'l'` + 0 = `'l'`
-    
+
 -   Nueva clave rotada: `"b" + "a" = "ba"`
-    
+
 
 Queda pendiente concatenar `'l'` con la llamada:
 
@@ -1257,13 +1367,13 @@ El mensaje está vacío (`m.isEmpty = true`). Devuelve `""`.
 ### Desapilado y Retorno
 
 -   `vigenere("", "ba")` -> `""`
-    
+
 -   `vigenere("l", "ab")` -> `'l' + ""` ->`"l"`
-    
+
 -   `vigenere("ol", "ba")` -> `'p' + "l"` -> `"pl"`
-    
+
 -   `vigenere("sol", "ab")` -> `'s' + "pl"` -> `"spl"`
-    
+
 
 ### Pila de llamados (`vigenere`)
 
@@ -1292,188 +1402,44 @@ sequenceDiagram
 ```
 vigenere("sol", "ab") -> "spl"
 
+# Ejecución del programa principal (`App`)
 
-# Punto 0: CESAR Y CESARCOLA con (casa,3)
+## Descripción
 
-## 1. Cifrado César con Recursión Lineal: `cesar("casa", 3)`
+El objeto `App` contiene el método `main`, que es el punto de entrada del programa. Al ejecutarse, crea una instancia de la clase `CifradosClasicos`, llama al método `cesar` con el mensaje `"casa"` y el desplazamiento `3`, y muestra el resultado en la consola.
 
-### Ejecución paso a paso
+## Código
 
-Scala
+```scala
+package taller
 
-```
-cesar("casa", 3)
-
-```
-
-#### Paso 1
-
--   `m.head = 'c'`, `m.tail = "asa"`
-    
--   `'c'` desplazado $3$ posiciones pasa a ser `'f'`.
-    
--   Se realiza la llamada recursiva `cesar("asa", 3)`.
-    
--   **Operación pendiente:** `'f' + ...`
-    
-
-#### Paso 2
-
--   `m.head = 'a'`, `m.tail = "sa"`
-    
--   `'a'` desplazado $3$ posiciones pasa a ser `'d'`.
-    
--   Se realiza la llamada recursiva `cesar("sa", 3)`.
-    
--   **Operación pendiente:** `'d' + ...`
-    
-
-#### Paso 3
-
--   `m.head = 's'`, `m.tail = "a"`
-    
--   `'s'` desplazado $3$ posiciones pasa a ser `'v'`.
-    
--   Se realiza la llamada recursiva `cesar("a", 3)`.
-    
--   **Operación pendiente:** `'v' + ...`
-    
-
-#### Paso 4
-
--   `m.head = 'a'`, `m.tail = ""`
-    
--   `'a'` desplazado $3$ posiciones pasa a ser `'d'`.
-    
--   Se realiza la llamada recursiva `cesar("", 3)`.
-    
--   **Operación pendiente:** `'d' + ...`
-    
-
-#### Paso 5: Caso base y desapilado
-
--   `m.isEmpty == true`, por lo que `cesar("", 3)` devuelve `""`.
-    
--   Se resuelven las concatenaciones desapilando las llamadas:
-    
-    -   `cesar("a", 3)` $\rightarrow$ `'d' + ""` $\rightarrow$ `"d"`
-        
-    -   `cesar("sa", 3)` $\rightarrow$ `'v' + "d"` $\rightarrow$ `"vd"`
-        
-    -   `cesar("asa", 3)` $\rightarrow$ `'d' + "vd"` $\rightarrow$ `"dvd"`
-        
-    -   `cesar("casa", 3)` $\rightarrow$ `'f' + "dvd"` $\rightarrow$ `"fdvd"`
-        
-
-### Diagrama de llamados de pila (`cesar`)
-
-Fragmento de código
-
-```mermaid
-sequenceDiagram
-    participant Main as cesar("casa", 3)
-    participant L1 as cesar("asa", 3)
-    participant L2 as cesar("sa", 3)
-    participant L3 as cesar("a", 3)
-    participant L4 as cesar("", 3)
-
-    Main->>L1: llamada recursiva con ("asa", 3)
-    L1->>L2: llamada recursiva con ("sa", 3)
-    L2->>L3: llamada recursiva con ("a", 3)
-    L3->>L4: llamada recursiva con ("", 3)
-    L4-->>L3: return ""
-    L3-->>L2: return "d"
-    L2-->>L1: return "vd"
-    L1-->>Main: return "dvd"
-    Main-->>Main: return "fdvd"
-
+object App {
+  def main(args: Array[String]): Unit = {
+    val c = new CifradosClasicos()
+    println(c.cesar("casa", 3))
+  }
+}
 ```
 
-#### Resultado
+## Ejecución paso a paso
 
+1. `val c = new CifradosClasicos()` crea un objeto de la clase que contiene los métodos de cifrado.
+2. `c.cesar("casa", 3)` cifra el mensaje desplazando cada letra minúscula tres posiciones hacia adelante.
+3. `println(...)` imprime el mensaje cifrado en la consola.
 
-```
-cesar("casa", 3) -> "fdvd"
+## Resultado esperado
 
-```
+Cada letra se desplaza tres posiciones en el alfabeto:
 
-## 2. Cifrado César con Recursión de Cola: `cesarCola("casa", 3)`
+- `c` -> `f`
+- `a` -> `d`
+- `s` -> `v`
+- `a` -> `d`
 
-### Ejecución paso a paso
+Por lo tanto, la salida del programa es:
 
-Scala
-
-```
-cesarCola("casa", 3)
-
-```
-
-Inicialmente: `m = "casa"`, `k = 3`, `acc = ""`
-
-#### Paso 1
-
--   `m.head = 'c'`, `'c'` $\rightarrow$ `'f'`
-    
--   El acumulador se actualiza: `"" + 'f' = "f"`
-    
--   Llama a: `cesarCola("asa", 3, "f")`
-    
-
-#### Paso 2
-
--   `m.head = 'a'`, `'a'` $\rightarrow$ `'d'`
-    
--   El acumulador se actualiza: `"f" + 'd' = "fd"`
-    
--   Llama a: `cesarCola("sa", 3, "fd")`
-    
-
-#### Paso 3
-
--   `m.head = 's'`, `'s'` $\rightarrow$ `'v'`
-    
--   El acumulador se actualiza: `"fd" + 'v' = "fdv"`
-    
--   Llama a: `cesarCola("a", 3, "fdv")`
-    
-
-#### Paso 4
-
--   `m.head = 'a'`, `'a'` $\rightarrow$ `'d'`
-    
--   El acumulador se actualiza: `"fdv" + 'd' = "fdvd"`
-    
--   Llama a: `cesarCola("", 3, "fdvd")`
-    
-
-#### Paso 5: Caso base
-
--   `m.isEmpty == true`, por lo que devuelve directamente el acumulador: `"fdvd"`.
-    
-
-### Diagrama de llamados de pila (`cesarCola`)
-
-Fragmento de código
-
-```mermaid
-sequenceDiagram
-    participant Main as cesarCola("casa", 3)
-    participant L1 as loop("asa", 3, "f")
-    participant L2 as loop("sa", 3, "fd")
-    participant L3 as loop("a", 3, "fdv")
-    participant L4 as loop("", 3, "fdvd")
-
-    Main->>L1: llamada inicial
-    L1->>L2: tail call con ("sa", 3, "fd")
-    L2->>L3: tail call con ("a", 3, "fdv")
-    L3->>L4: tail call con ("", 3, "fdvd")
-    L4-->>Main: return "fdvd"
-
+```text
+fdvd
 ```
 
-#### Resultado
-
-Plaintext
-
-```
-cesarCola("casa", 3) → "fdvd"
+Este ejemplo muestra cómo se utiliza el método `cesar` desde el programa principal. Los ejemplos más pequeños de las demás secciones sirven para explicar paso a paso el funcionamiento de cada algoritmo.
