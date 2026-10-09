@@ -243,4 +243,5 @@ class CifradosClasicosTest extends AnyFunSuite {
   }
   test("vigenere: las mayúsculas y los espacios se copian y no consumen clave") {
     assert(vigenere("A b c", "ab") == "A b d")
+  }
 }
