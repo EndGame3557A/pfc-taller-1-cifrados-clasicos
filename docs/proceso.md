@@ -76,7 +76,7 @@ Para observar el funcionamiento se utiliza el siguiente ejemplo:
 Scala
 
 ```
-cesar("casa",3)
+cesar("abc",3)
 
 ```
 
