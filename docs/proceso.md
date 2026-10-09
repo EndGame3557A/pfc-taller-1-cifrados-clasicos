@@ -15,6 +15,12 @@ Los puntos desarrollados fueron:
 -   **Punto 3:** Conteo de frecuencias con recursión de cola.
     
 -   **Punto 4:** Romper un César por análisis de frecuencias.
+
+-   **Punto 5:** Vigenère y Conteo de mensajes.
+
+-   **Punto 0:** Ejecución del App.
+
+
     
 
 # 1.3. Punto 1: Cifrado César con recursión lineal
@@ -70,7 +76,7 @@ Para observar el funcionamiento se utiliza el siguiente ejemplo:
 Scala
 
 ```
-cesar("abc", 1)
+cesar("abc",3)
 
 ```
 
@@ -1256,7 +1262,7 @@ El mensaje está vacío (`m.isEmpty = true`). Devuelve `""`.
     
 -   `vigenere("ol", "ba")` -> `'p' + "l"` -> `"pl"`
     
--   `vigenere("sol", "ab")` -> `'s' + "pl"` <> `"spl"`
+-   `vigenere("sol", "ab")` -> `'s' + "pl"` -> `"spl"`
     
 
 ### Pila de llamados (`vigenere`)
@@ -1285,5 +1291,47 @@ sequenceDiagram
 
 ```
 vigenere("sol", "ab") -> "spl"
+
+# Ejecución del programa principal (`App`)
+
+## Descripción
+
+El objeto `App` contiene el método `main`, que es el punto de entrada del programa. Al ejecutarse, crea una instancia de la clase `CifradosClasicos`, llama al método `cesar` con el mensaje `"casa"` y el desplazamiento `3`, y muestra el resultado en la consola.
+
+## Código
+
+```scala
+package taller
+
+object App {
+  def main(args: Array[String]): Unit = {
+    val c = new CifradosClasicos()
+    println(c.cesar("casa", 3))
+  }
+}
+```
+
+## Ejecución paso a paso
+
+1. `val c = new CifradosClasicos()` crea un objeto de la clase que contiene los métodos de cifrado.
+2. `c.cesar("casa", 3)` cifra el mensaje desplazando cada letra minúscula tres posiciones hacia adelante.
+3. `println(...)` imprime el mensaje cifrado en la consola.
+
+## Resultado esperado
+
+Cada letra se desplaza tres posiciones en el alfabeto:
+
+- `c` -> `f`
+- `a` -> `d`
+- `s` -> `v`
+- `a` -> `d`
+
+Por lo tanto, la salida del programa es:
+
+```text
+fdvd
+```
+
+Este ejemplo muestra cómo se utiliza el método `cesar` desde el programa principal. Los ejemplos más pequeños de las demás secciones sirven para explicar paso a paso el funcionamiento de cada algoritmo.
 
 
