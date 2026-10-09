@@ -18,7 +18,7 @@ Los puntos desarrollados fueron:
 
 -   **Punto 5:** Vigenère y Conteo de mensajes.
 
--   **Punto 0:** Ejecución del App.
+-   **Punto 0:** Cesar y CesarCola con (casa,3).
 
 
     
@@ -1292,46 +1292,188 @@ sequenceDiagram
 ```
 vigenere("sol", "ab") -> "spl"
 
-# Ejecución del programa principal (`App`)
 
-## Descripción
+# Punto 0: CESAR Y CESARCOLA con (casa,3)
 
-El objeto `App` contiene el método `main`, que es el punto de entrada del programa. Al ejecutarse, crea una instancia de la clase `CifradosClasicos`, llama al método `cesar` con el mensaje `"casa"` y el desplazamiento `3`, y muestra el resultado en la consola.
+## 1. Cifrado César con Recursión Lineal: `cesar("casa", 3)`
 
-## Código
+### Ejecución paso a paso
 
-```scala
-package taller
+Scala
 
-object App {
-  def main(args: Array[String]): Unit = {
-    val c = new CifradosClasicos()
-    println(c.cesar("casa", 3))
-  }
-}
+```
+cesar("casa", 3)
+
 ```
 
-## Ejecución paso a paso
+#### Paso 1
 
-1. `val c = new CifradosClasicos()` crea un objeto de la clase que contiene los métodos de cifrado.
-2. `c.cesar("casa", 3)` cifra el mensaje desplazando cada letra minúscula tres posiciones hacia adelante.
-3. `println(...)` imprime el mensaje cifrado en la consola.
+-   `m.head = 'c'`, `m.tail = "asa"`
+    
+-   `'c'` desplazado $3$ posiciones pasa a ser `'f'`.
+    
+-   Se realiza la llamada recursiva `cesar("asa", 3)`.
+    
+-   **Operación pendiente:** `'f' + ...`
+    
 
-## Resultado esperado
+#### Paso 2
 
-Cada letra se desplaza tres posiciones en el alfabeto:
+-   `m.head = 'a'`, `m.tail = "sa"`
+    
+-   `'a'` desplazado $3$ posiciones pasa a ser `'d'`.
+    
+-   Se realiza la llamada recursiva `cesar("sa", 3)`.
+    
+-   **Operación pendiente:** `'d' + ...`
+    
 
-- `c` -> `f`
-- `a` -> `d`
-- `s` -> `v`
-- `a` -> `d`
+#### Paso 3
 
-Por lo tanto, la salida del programa es:
+-   `m.head = 's'`, `m.tail = "a"`
+    
+-   `'s'` desplazado $3$ posiciones pasa a ser `'v'`.
+    
+-   Se realiza la llamada recursiva `cesar("a", 3)`.
+    
+-   **Operación pendiente:** `'v' + ...`
+    
 
-```text
-fdvd
+#### Paso 4
+
+-   `m.head = 'a'`, `m.tail = ""`
+    
+-   `'a'` desplazado $3$ posiciones pasa a ser `'d'`.
+    
+-   Se realiza la llamada recursiva `cesar("", 3)`.
+    
+-   **Operación pendiente:** `'d' + ...`
+    
+
+#### Paso 5: Caso base y desapilado
+
+-   `m.isEmpty == true`, por lo que `cesar("", 3)` devuelve `""`.
+    
+-   Se resuelven las concatenaciones desapilando las llamadas:
+    
+    -   `cesar("a", 3)` $\rightarrow$ `'d' + ""` $\rightarrow$ `"d"`
+        
+    -   `cesar("sa", 3)` $\rightarrow$ `'v' + "d"` $\rightarrow$ `"vd"`
+        
+    -   `cesar("asa", 3)` $\rightarrow$ `'d' + "vd"` $\rightarrow$ `"dvd"`
+        
+    -   `cesar("casa", 3)` $\rightarrow$ `'f' + "dvd"` $\rightarrow$ `"fdvd"`
+        
+
+### Diagrama de llamados de pila (`cesar`)
+
+Fragmento de código
+
+```mermaid
+sequenceDiagram
+    participant Main as cesar("casa", 3)
+    participant L1 as cesar("asa", 3)
+    participant L2 as cesar("sa", 3)
+    participant L3 as cesar("a", 3)
+    participant L4 as cesar("", 3)
+
+    Main->>L1: llamada recursiva con ("asa", 3)
+    L1->>L2: llamada recursiva con ("sa", 3)
+    L2->>L3: llamada recursiva con ("a", 3)
+    L3->>L4: llamada recursiva con ("", 3)
+    L4-->>L3: return ""
+    L3-->>L2: return "d"
+    L2-->>L1: return "vd"
+    L1-->>Main: return "dvd"
+    Main-->>Main: return "fdvd"
+
 ```
 
-Este ejemplo muestra cómo se utiliza el método `cesar` desde el programa principal. Los ejemplos más pequeños de las demás secciones sirven para explicar paso a paso el funcionamiento de cada algoritmo.
+#### Resultado
 
 
+```
+cesar("casa", 3) -> "fdvd"
+
+```
+
+## 2. Cifrado César con Recursión de Cola: `cesarCola("casa", 3)`
+
+### Ejecución paso a paso
+
+Scala
+
+```
+cesarCola("casa", 3)
+
+```
+
+Inicialmente: `m = "casa"`, `k = 3`, `acc = ""`
+
+#### Paso 1
+
+-   `m.head = 'c'`, `'c'` $\rightarrow$ `'f'`
+    
+-   El acumulador se actualiza: `"" + 'f' = "f"`
+    
+-   Llama a: `cesarCola("asa", 3, "f")`
+    
+
+#### Paso 2
+
+-   `m.head = 'a'`, `'a'` $\rightarrow$ `'d'`
+    
+-   El acumulador se actualiza: `"f" + 'd' = "fd"`
+    
+-   Llama a: `cesarCola("sa", 3, "fd")`
+    
+
+#### Paso 3
+
+-   `m.head = 's'`, `'s'` $\rightarrow$ `'v'`
+    
+-   El acumulador se actualiza: `"fd" + 'v' = "fdv"`
+    
+-   Llama a: `cesarCola("a", 3, "fdv")`
+    
+
+#### Paso 4
+
+-   `m.head = 'a'`, `'a'` $\rightarrow$ `'d'`
+    
+-   El acumulador se actualiza: `"fdv" + 'd' = "fdvd"`
+    
+-   Llama a: `cesarCola("", 3, "fdvd")`
+    
+
+#### Paso 5: Caso base
+
+-   `m.isEmpty == true`, por lo que devuelve directamente el acumulador: `"fdvd"`.
+    
+
+### Diagrama de llamados de pila (`cesarCola`)
+
+Fragmento de código
+
+```mermaid
+sequenceDiagram
+    participant Main as cesarCola("casa", 3)
+    participant L1 as loop("asa", 3, "f")
+    participant L2 as loop("sa", 3, "fd")
+    participant L3 as loop("a", 3, "fdv")
+    participant L4 as loop("", 3, "fdvd")
+
+    Main->>L1: llamada inicial
+    L1->>L2: tail call con ("sa", 3, "fd")
+    L2->>L3: tail call con ("a", 3, "fdv")
+    L3->>L4: tail call con ("", 3, "fdvd")
+    L4-->>Main: return "fdvd"
+
+```
+
+#### Resultado
+
+Plaintext
+
+```
+cesarCola("casa", 3) → "fdvd"
