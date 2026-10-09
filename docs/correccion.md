@@ -107,6 +107,7 @@ cesar("casa", 3)
 = 'f' ++ "dvd"
 = "fdvd"
 ```
+Devuelve "", el cual coincide con el mapeo de una secuencia vacía. Por lo tanto, $\mathcal{P}("")$ se cumple trivialmente.
 
 Cada letra se calcula con $f_{\text{shift}}$: $P(\texttt{c}) = 2$, $2 + 3 = 5$, y $P^{-1}(5) = \texttt{f}$. Del mismo modo $\texttt{a} \to \texttt{d}$, $\texttt{s}$ ($18$) $\to \texttt{v}$ ($21$), $\texttt{a} \to \texttt{d}$.
 
@@ -259,6 +260,10 @@ def contar(m: Mensaje, acc: Map[Char, Int]): Map[Char, Int] = {
 val freqMap = contar(m, Map.empty)
 freqMap.toList.sortBy { case (c, count) => (-count, c) }
 ```
+### Demostración de la Forma Cerrada:
+Demostramos que para $n \ge 1$, la función implementada satisface la relación $C(n, a) = a \cdot (a - 1)^{n - 1}$.
+- *Base ($n = 1$):*$$C(1, a) = a \cdot (a - 1)^{1 - 1} = a \cdot (a - 1)^0 = a \cdot 1 = a$$ Coincide con el caso base $else if (n == 1) BigInt(a)$.
+- *Paso Inductivo ($n = k + 1$):* Por código, $combinaciones(k + 1, a)$ ejecuta $BigInt(a - 1) * combinaciones(k, a)$. Sustituyendo la *H.I.* $C(k, a) = a \cdot (a - 1)^{k - 1}$:$$C(k + 1, a) = (a - 1) \cdot \left[ a \cdot (a - 1)^{k - 1} \right] = a \cdot (a - 1)^k$$
 
 - `esMinuscula(c)` corresponde a $c \in \Sigma$.
 - `acc.getOrElse(c, 0)` corresponde a $acc(c)$, con valor $0$ si la letra no está registrada.

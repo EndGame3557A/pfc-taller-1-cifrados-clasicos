@@ -75,18 +75,18 @@ class CifradosClasicos {
   def frecuencias(m: Mensaje): Frecuencias = {
     @tailrec
     def contar(m: Mensaje, acc: Map[Char, Int]): Map[Char, Int] = {
-      if (m.isEmpty) acc
+      if (m.isEmpty) acc //se verifica si el mensaje está vacío
       else {
-        val c = m.head
+        val c = m.head //se toma la primer letra del mensaje actual
         val nuevaAcc = if (esMinuscula(c)) {
-          acc + (c -> (acc.getOrElse(c, 0) + 1))
+          acc + (c -> (acc.getOrElse(c, 0) + 1)) //se suma 1 a la frecuencia de la letra
         } else acc
-        contar(m.tail, nuevaAcc)
+        contar(m.tail, nuevaAcc) //se borra la letra y vuelve a iniciar
       }
     }
 
-    val freqMap = contar(m, Map.empty)
-    freqMap.toList.sortBy { case (c, count) => (-count, c) }
+    val freqMap = contar(m, Map.empty) //se llama a la función contar para contar las frecuencias
+    freqMap.toList.sortBy { case (c, count) => (-count, c) } //se ordenan las frecuencias de mayor a menor
   }
 
   // Punto 4 -------------------------------------------------------------------
@@ -96,19 +96,21 @@ class CifradosClasicos {
    * original y devuelve la distancia entre las dos. Sin letras, cero.
    */
   def desplazamientoProbable(m: Mensaje): Int = {
-    val freq = frecuencias(m)
-    if (freq.isEmpty) 0
+    val freq = frecuencias(m)  //se llama a la función frecuencias para obtener las frecuencias del mensaje
+    if (freq.isEmpty) 0 //si el mensaje está vacío, devuelve 0
     else {
-      val letraMasFrecuente = freq.head._1
+      val letraMasFrecuente = freq.head._1 //se toma la primer letra del mensaje actual
 
-      val desplazamiento = letraMasFrecuente - 'e'
+      val desplazamiento = letraMasFrecuente - 'e'// se calcula la distancia entre la letra más frecuente y la letra 'e'
+
       if (desplazamiento < 0) desplazamiento + letras else desplazamiento
+      //si el desplazamiento da negativo, se le suma la cantidad de letras para que vuelva a ser positivo
     }
   }
 
   def romperCesar(m: Mensaje): Mensaje = {
-    val k = desplazamientoProbable(m)
-    cesarCola(m, -k)
+    val k = desplazamientoProbable(m) //el valor de la letra
+    cesarCola(m, -k) //se desplaza el mensaje
   }
 
   // Punto 5 -------------------------------------------------------------------
@@ -117,7 +119,7 @@ class CifradosClasicos {
    * Cuántos mensajes de longitud n se forman con a letras sin dos iguales
    * seguidas.
    */
-  def combinaciones(n: Int, a: Int): BigInt = {
+  def combinaciones(n: Int, a: Int): BigInt = { //
     if (n == 0) BigInt(1)
     else if (n == 1) BigInt(a)
     else {
@@ -147,3 +149,4 @@ class CifradosClasicos {
     }
   }
 }
+
