@@ -107,6 +107,7 @@ cesar("casa", 3)
 = 'f' ++ "dvd"
 = "fdvd"
 ```
+Devuelve "", el cual coincide con el mapeo de una secuencia vacía. Por lo tanto, $\mathcal{P}("")$ se cumple trivialmente.
 
 Cada letra se calcula con $f_{\text{shift}}$: $P(\texttt{c}) = 2$, $2 + 3 = 5$, y $P^{-1}(5) = \texttt{f}$. Del mismo modo $\texttt{a} \to \texttt{d}$, $\texttt{s}$ ($18$) $\to \texttt{v}$ ($21$), $\texttt{a} \to \texttt{d}$.
 
@@ -229,3 +230,164 @@ Con $s = 0$ queda demostrada la corrección. Si la clave es vacía, la segunda e
 | `o` | `ab` | $0$ | `o` | `ba` |
 
 Resultado: `"hplb mvneo"`. El espacio se copia sin consumir letra de la clave, y por eso la `m` de `mundo` se cifra con `a`.
+
+
+
+
+
+## 7. Corrección de `frecuencias`
+
+Para $c \in \Sigma$ y una cadena $m$, sea $N(c, m)$ el número de veces que $c$ aparece en $m$. La especificación del taller es
+
+$$
+\text{frecuencias}(m) = \text{ordenar}_{(-n,\, c)}\big(\{(c, N(c, m)) : c \in \Sigma,\ N(c, m) > 0\}\big)
+$$
+
+es decir, solo las letras que aparecen, de mayor a menor frecuencia y, a igual frecuencia, en orden alfabético.
+
+### Correspondencia con la implementación
+
+```scala
+@tailrec
+def contar(m: Mensaje, acc: Map[Char, Int]): Map[Char, Int] = {
+  if (m.isEmpty) acc
+  else {
+    val c = m.head
+    val nuevaAcc = if (esMinuscula(c)) acc + (c -> (acc.getOrElse(c, 0) + 1)) else acc
+    contar(m.tail, nuevaAcc)
+  }
+}
+val freqMap = contar(m, Map.empty)
+freqMap.toList.sortBy { case (c, count) => (-count, c) }
+```
+### Demostración de la Forma Cerrada:
+Demostramos que para $n \ge 1$, la función implementada satisface la relación $C(n, a) = a \cdot (a - 1)^{n - 1}$.
+- *Base ($n = 1$):*$$C(1, a) = a \cdot (a - 1)^{1 - 1} = a \cdot (a - 1)^0 = a \cdot 1 = a$$ Coincide con el caso base $else if (n == 1) BigInt(a)$.
+- *Paso Inductivo ($n = k + 1$):* Por código, $combinaciones(k + 1, a)$ ejecuta $BigInt(a - 1) * combinaciones(k, a)$. Sustituyendo la *H.I.* $C(k, a) = a \cdot (a - 1)^{k - 1}$:$$C(k + 1, a) = (a - 1) \cdot \left[ a \cdot (a - 1)^{k - 1} \right] = a \cdot (a - 1)^k$$
+
+- `esMinuscula(c)` corresponde a $c \in \Sigma$.
+- `acc.getOrElse(c, 0)` corresponde a $acc(c)$, con valor $0$ si la letra no está registrada.
+- `Map.empty` es el acumulador inicial, con $acc(c) = 0$ para todo $c$.
+
+### Lema (invariante del acumulador)
+
+Para toda cadena $m$ y todo acumulador $acc$, $\text{contar}(m, acc)$ devuelve un mapa $acc^*$ tal que
+
+$$
+acc^*(c) = acc(c) + N(c, m) \quad \forall c \in \Sigma
+\qquad \text{y} \qquad
+\text{dom}(acc^*) = \text{dom}(acc) \cup \{c \in \Sigma : N(c, m) > 0\}
+$$
+
+**Demostración** por inducción sobre la longitud de $m$, con $acc$ arbitrario.
+
+- *Base* ($m = \varepsilon$): $\text{contar}(\varepsilon, acc) = acc$ y $N(c, \varepsilon) = 0$ para todo $c$. Ambas igualdades se cumplen.
+- *Paso* ($m = h \cdot t$):
+  - Si $h \in \Sigma$, se llama a $\text{contar}(t, acc')$ con $acc'(h) = acc(h) + 1$, $acc'(c) = acc(c)$ para $c \neq h$, y $\text{dom}(acc') = \text{dom}(acc) \cup \{h\}$. Por H.I., el resultado $acc^*$ cumple $acc^*(c) = acc'(c) + N(c, t)$. Para $c = h$: $acc(h) + 1 + N(h, t) = acc(h) + N(h, h \cdot t)$. Para $c \neq h$: $acc(c) + N(c, t) = acc(c) + N(c, h \cdot t)$. El dominio es $\text{dom}(acc) \cup \{h\} \cup \{c : N(c, t) > 0\}$, que es el pedido porque $N(h, h \cdot t) > 0$.
+  - Si $h \notin \Sigma$, el acumulador no cambia y $N(c, h \cdot t) = N(c, t)$ para todo $c \in \Sigma$. La H.I. da ambas igualdades. $\blacksquare$
+
+Con $acc = \varnothing$, el mapa resultante asocia a cada letra su $N(c, m)$, y **solo** a las letras que aparecen. Por eso las letras con frecuencia cero no salen en el resultado.
+
+### Orden del resultado
+
+Las llaves de un `Map` son distintas, así que `freqMap.toList` tiene pares con letras distintas. El orden lexicográfico $(-n, c)$ sobre $\mathbb{Z} \times \Sigma$ es total, y por tanto la lista ordenada es **única** y coincide con la especificación.
+
+### Traza: `frecuencias("casa")`
+
+```text
+contar("casa", {})
+-> contar("asa", {c -> 1})
+-> contar("sa",  {c -> 1, a -> 1})
+-> contar("a",   {c -> 1, a -> 1, s -> 1})
+-> contar("",    {c -> 1, a -> 2, s -> 1})      <- caso base: devuelve acc
+
+toList.sortBy(-count, c)  =  List(('a',2), ('c',1), ('s',1))
+```
+
+### Terminación y recursión de cola
+
+En cada llamado la cadena pierde un carácter, así que $|m|$ decrece y se alcanza el caso base. La llamada `contar(m.tail, nuevaAcc)` es lo último que hace la función en su rama recursiva, por lo que `@tailrec` es válido y el recorrido usa espacio constante. El ordenamiento final es una sola llamada a la biblioteca, fuera de la recursión.
+
+
+
+
+
+
+
+## 8. Corrección de `desplazamientoProbable` y `romperCesar`
+
+### Correspondencia con la implementación
+
+```scala
+val freq = frecuencias(m)
+if (freq.isEmpty) 0
+else {
+  val letraMasFrecuente = freq.head._1
+  val desplazamiento = letraMasFrecuente - 'e'
+  if (desplazamiento < 0) desplazamiento + letras else desplazamiento
+}
+```
+
+Sea $F = \text{frecuencias}(m)$ y $c^*$ la letra de la cabeza de $F$ (la más frecuente; en empate, la menor alfabéticamente). Sea $\delta = P(c^*) - P(\texttt{e})$, que es lo que calcula `letraMasFrecuente - 'e'`. Definimos
+
+$$
+d(m) =
+\begin{cases}
+0 & \text{si } F = [\,] \\
+\delta & \text{si } F \neq [\,] \text{ y } \delta \ge 0 \\
+\delta + 26 & \text{si } F \neq [\,] \text{ y } \delta < 0
+\end{cases}
+\qquad
+\text{romperCesar}(m) = \text{cesarCola}\big(m,\, -d(m)\big)
+$$
+
+### Lema 1 (la normalización es un módulo 26)
+
+Si $F \neq [\,]$, entonces $d(m) = \delta \bmod 26 \in [0, 25]$.
+
+*Demostración.* Como $P(c^*), P(\texttt{e}) \in [0, 25]$, se tiene $\delta \in [-25, 25]$. Si $\delta \ge 0$, entonces $\delta \in [0, 25]$ y $d(m) = \delta = \delta \bmod 26$. Si $\delta < 0$, entonces $\delta + 26 \in [1, 25]$ y es congruente con $\delta$ módulo 26, así que $d(m) = \delta \bmod 26$. $\blacksquare$
+
+**Verificación con los casos del enunciado:**
+
+- $d(\texttt{"h"}) = 7 - 4 = 3$.
+- $d(\texttt{"hhhaa"}) = 3$, porque $c^* = \texttt{h}$.
+- $d(\texttt{"123"}) = 0$, porque $F = [\,]$.
+- $d(\texttt{"hhhaaa"})$: hay empate a 3, $F = [(\texttt{a},3), (\texttt{h},3)]$, $c^* = \texttt{a}$ y $\delta = 0 - 4 = -4 < 0$, así que $d = -4 + 26 = 22$.
+
+### Lema 2 (composición de desplazamientos)
+
+Para toda cadena $p$ y enteros $a, b$: $\text{cesar}(\text{cesar}(p, a), b) = \text{cesar}(p, a + b)$. En particular, $\text{cesar}(\text{cesar}(p, k), -k) = \text{cesar}(p, 0) = p$.
+
+*Demostración.* Por inducción estructural basta probar $f_{\text{shift}}(f_{\text{shift}}(c, a), b) = f_{\text{shift}}(c, a + b)$. Si $c \notin \Sigma$, ambos lados dan $c$. Si $c \in \Sigma$ con $P(c) = x$, el lado izquierdo da la posición $\big((x + a) \bmod 26 + b\big) \bmod 26 = (x + a + b) \bmod 26$, que es la del lado derecho. Para $b = -a$ se obtiene $x \bmod 26 = x$. $\blacksquare$
+
+Además, como `cesarCola` y `cesar` son equivalentes (Sección 3), $\text{romperCesar}(m) = \text{cesar}(m, -d(m))$.
+
+### Teorema (condición exacta de éxito)
+
+Sea $p$ un mensaje con al menos una letra y $m = \text{cesar}(p, k)$. Entonces
+
+$$
+\text{romperCesar}(m) = p \iff c^* = f_{\text{shift}}(\texttt{e}, k)
+$$
+
+es decir, el método acierta si y solo si la letra ganadora del texto cifrado, con el desempate alfabético de `frecuencias`, es la imagen de `e` bajo el corrimiento real.
+
+*Demostración.* Como $p$ tiene letras, $m$ también y $F \neq [\,]$. Por el Lema 1, $d(m) = (P(c^*) - 4) \bmod 26$, así que
+
+$$
+d(m) \equiv k \pmod{26} \iff P(c^*) \equiv 4 + k \pmod{26} \iff c^* = f_{\text{shift}}(\texttt{e}, k)
+$$
+
+- ($\Leftarrow$) Si $d(m) \equiv k$, entonces $\text{romperCesar}(m) = \text{cesar}(\text{cesar}(p, k), -d(m)) = \text{cesar}(p, k - d(m)) = \text{cesar}(p, 0) = p$, por el Lema 2 y porque $f_{\text{shift}}$ solo depende del desplazamiento módulo 26.
+- ($\Rightarrow$) Si $d(m) \not\equiv k$, el Lema 2 da $\text{romperCesar}(m) = \text{cesar}(p, k - d(m))$ con $(k - d(m)) \bmod 26 \neq 0$. Como $p$ tiene al menos una letra, esa letra cambia de posición, y por tanto $\text{romperCesar}(m) \neq p$. $\blacksquare$
+
+Si el mensaje no tiene letras, $d(m) = 0$ y $\text{romperCesar}(m) = \text{cesarCola}(m, 0) = m$, que es correcto trivialmente.
+
+### Relación con el contraejemplo de la Sección 5
+
+El teorema explica el fallo de la Sección 5. El método falla exactamente cuando la letra ganadora del cifrado no es la imagen de `e`. Eso ocurre por dos razones:
+
+1. La `e` no es la más frecuente del texto plano.
+2. Hay un empate, y el orden alfabético, que **no se conserva** al correr las letras, elige otra letra.
+
+En el contraejemplo, $p = \texttt{"papa"}$ y $k = 5$, así que $f_{\text{shift}}(\texttt{e}, 5) = \texttt{j}$. Pero $m = \texttt{"ufuf"}$ tiene empate entre `f` y `u`, y gana $c^* = \texttt{f} \neq \texttt{j}$. Por el teorema, el método falla, y de hecho $d = 1 \neq 5$ y $\text{romperCesar}(m) = \texttt{"tete"} \neq \texttt{"papa"}$.
